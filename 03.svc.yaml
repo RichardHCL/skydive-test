@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: skydive-analyzer
+  namespace: skydive
+  labels:
+    app: skydive-analyzer
+spec:
+  type: NodePort
+  ports:
+  - port: 8082
+    name: api
+    nodePort: 30068
+  - port: 8082
+    name: protobuf
+    protocol: UDP
+    nodePort: 30068
+  - port: 12379
+    name: etcd
+    nodePort: 30069
+  - port: 12380
+    name: etcd-cluster
+    nodePort: 30070
+  - port: 9200
+    name: es
+    nodePort: 30071
+  selector:
+    app: skydive
+    tier: analyzer

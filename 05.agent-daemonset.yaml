@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: skydive-agent
+  namespace: skydive
+spec:
+  selector:
+    matchLabels:
+      app: skydive
+      tier: agent
+  template:
+    metadata:
+      labels:
+        app: skydive
+        tier: agent
+    spec:
+      hostNetwork: true
+      hostPID: true
+      serviceAccountName: skydive-service-account
+      nodeSelector:
+        cloudnative.m800.com/district: hongkong-able
+        # failure-domain.beta.kubernetes.io/region: hongkong
+      containers:
+      - name: skydive-agent
+        image: skydive/skydive
+        resources:
+          requests:
+            cpu: 0m
+            memory: 0Mi
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+        args:
+        - agent
+        - --listen=0.0.0.0:8081
+        ports:
+        - containerPort: 8081
+        readinessProbe:
+          httpGet:
+            port: 8081
+            path: /api/status
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            port: 8081
+            path: /api/status
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 10
+        env:
+        - name: SKYDIVE_ANALYZERS
+          value: "$(SKYDIVE_ANALYZER_SERVICE_HOST):$(SKYDIVE_ANALYZER_SERVICE_PORT_API)"
+        - name: SKYDIVE_AGENT_TOPOLOGY_RUNC_RUN_PATH
+          value: /var/run/runc /var/run/runc-ctrs /var/run/containerd/runc
+        envFrom:
+        - configMapRef:
+            name: skydive-agent-config
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: docker
+          mountPath: /var/run/docker.sock
+        - name: run
+          mountPath: /host/run
+        - name: ovsdb
+          mountPath: /var/run/openvswitch/db.sock
+        - name: runc
+          mountPath: /var/run/runc
+        - name: runc-ctrs
+          mountPath: /var/run/runc-ctrs
+        - name: containerd-runc
+          mountPath: /var/run/containerd/runc
+        - name: data-kubelet
+          mountPath: /var/data/kubelet
+        - name: lib-kubelet
+          mountPath: /var/lib/kubelet
+      volumes:
+      - name: docker
+        hostPath:
+          path: /var/run/docker.sock
+      - name: run
+        hostPath:
+          path: /var/run/netns
+      - name: ovsdb
+        hostPath:
+          path: /var/run/openvswitch/db.sock
+      - name: runc
+        hostPath:
+          path: /var/run/runc
+      - name: runc-ctrs
+        hostPath:
+          path: /var/run/runc-ctrs
+      - name: containerd-runc
+        hostPath:
+          path: /var/run/containerd/runc
+      - name: data-kubelet
+        hostPath:
+          path: /var/data/kubelet
+      - name: lib-kubelet
+        hostPath:
+          path: /var/lib/kubelet

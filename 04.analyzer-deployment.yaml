@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skydive-analyzer
+  namespace: skydive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: skydive
+      tier: analyzer
+  template:
+    metadata:
+      labels:
+        app: skydive
+        tier: analyzer
+    spec:
+      serviceAccountName: skydive-service-account
+      nodeSelector:
+        # cloudnative.m800.com/district: hongkong-able
+        kubernetes.io/hostname: hk-m1-k8s-node05
+      containers:
+      - name: skydive-analyzer
+        image: skydive/skydive
+        resources:
+          requests:
+            cpu: 0m
+            memory: 0Mi
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+        args:
+        - analyzer
+        ports:
+        - containerPort: 8082
+        - containerPort: 8082
+          protocol: UDP
+        - containerPort: 12379
+        - containerPort: 12380
+        readinessProbe:
+          httpGet:
+            port: 8082
+            path: /api/status
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            port: 8082
+            path: /api/status
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 10
+        volumeMounts:
+          - name: skydive-analyzer-config-etc-skydive
+            mountPath: /etc/skydive.yml
+            subPath: skydive.yml
+            readOnly: false
+        env:
+        - name: SKYDIVE_ANALYZER_LISTEN
+          value: "0.0.0.0:$(SKYDIVE_ANALYZER_SERVICE_PORT_API)"
+        - name: SKYDIVE_ETCD_LISTEN
+          value: "0.0.0.0:$(SKYDIVE_ANALYZER_SERVICE_PORT_ETCD)"
+        envFrom:
+        - configMapRef:
+            name: skydive-analyzer-config
+      - name: skydive-elasticsearch
+        image: elasticsearch:5
+        resources:
+          requests:
+            cpu: 0m
+            memory: 0Mi
+          limits:
+            cpu: 1500m
+            memory: 3072Mi
+        args:
+        - -E
+        - "http.port=9200"
+        ports:
+        - containerPort: 9200
+      volumes:
+        - name: skydive-analyzer-config-etc-skydive
+          configMap:
+            name: skydive-analyzer-config-etc-skydive

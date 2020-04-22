@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: skydive-ui
+  namespace: skydive
+  labels:
+    app: skydive-ui
+spec:
+  containers:
+  - name: skydive-ui
+    image: skydive/skydive-ui
+    ports:
+    - containerPort: 8080
+    resources:
+      requests:
+        memory: 0Mi
+      limits:
+        memory: 2048Mi
+    # command: ["stress"]
+    # args: ["--vm", "1", "--vm-bytes", "150M", "--vm-hang", "1"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skydive-ui
+  namespace: skydive
+  labels:
+    app: skydive-ui
+spec:
+  selector:
+    app: skydive-ui
+  type: NodePort
+  ports:
+  - port: 8080
+    name: api
+    nodePort: 30080

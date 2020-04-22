@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: skydive-agent
+  name: skydive-agent-config
+  namespace: skydive
+data:
+  SKYDIVE_AGENT_TOPOLOGY_PROBES: runc docker
+  SKYDIVE_AGENT_LISTEN: 127.0.0.1:8081
